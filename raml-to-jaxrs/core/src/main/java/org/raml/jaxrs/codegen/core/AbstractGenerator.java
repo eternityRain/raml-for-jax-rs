@@ -30,14 +30,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.ReflectPermission;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
@@ -57,6 +53,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import com.sun.codemodel.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
@@ -87,14 +84,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.sun.codemodel.JAnnotationArrayMember;
-import com.sun.codemodel.JAnnotationUse;
-import com.sun.codemodel.JClass;
-import com.sun.codemodel.JDefinedClass;
-import com.sun.codemodel.JDocComment;
-import com.sun.codemodel.JMethod;
-import com.sun.codemodel.JType;
-import com.sun.codemodel.JVar;
 
 /**
  * <p>Abstract AbstractGenerator class.</p>
@@ -224,7 +213,88 @@ public abstract class AbstractGenerator {
 			createResourceInterface(resource, raml,configuration);
 		}
 
+		if (configuration.isGenerateImplement())//1
+			createResourceImplement(raml);//1
+
 		return context.generate();
+	}
+
+	protected void createResourceImplement(Raml raml) throws Exception{
+        Configuration configuration = context.getConfiguration();
+		JCodeModel implModel = new JCodeModel();
+		JCodeModel interfaceModel = context.getCodeModel();
+		Iterator<JPackage> packagesIt = interfaceModel.packages();
+		while (packagesIt.hasNext()){
+			JPackage jPackage = packagesIt.next();
+			if (!jPackage.name().equals(configuration.getBasePackageName()+"."+configuration.getRestIFPackageName()))
+				continue;
+
+			Iterator<JDefinedClass> classIt = jPackage.classes();
+			while (classIt.hasNext()){
+
+				JDefinedClass interfaceClass = classIt.next();
+				String interfaceName = interfaceClass.fullName();
+                Collection<JMethod> interfaceMethods = interfaceClass.methods();
+
+				JDefinedClass implClass = implModel._class(interfaceName+"Impl");
+				implClass._implements(interfaceClass);
+
+				for (JMethod interfaceMethod : interfaceMethods){
+				    String methodName = interfaceMethod.name();
+				    JType returnType = interfaceMethod.type();
+				    List<JVar> interfaceParams = interfaceMethod.params();
+
+                    JMethod implMethod = implClass.method(JMod.PUBLIC,returnType,methodName);
+
+                    if (!configuration.isGenerateClientInterface())
+                        implMethod._throws(configuration.getMethodThrowException());
+
+                    for (JVar interfaceParam : interfaceParams){
+                        String interfaceParamName = interfaceParam.name();
+                        JType interfaceParamType = interfaceParam.type();
+                        JVar implParam = implMethod.param(interfaceParamType,interfaceParamName);
+
+                        Collection<JAnnotationUse> interfaceParamAnnos = interfaceParam.annotations();
+                        for (JAnnotationUse interfaceParamAnno : interfaceParamAnnos){
+                            if (interfaceParamAnno.getAnnotationClass().fullName().equals("javax.ws.rs.PathParam"))
+                                continue;
+
+                            JClass implParamAnnoType = interfaceParamAnno.getAnnotationClass();
+                            Map<String, JAnnotationValue> implParamAnnoMembers;
+                            try {
+                                implParamAnnoMembers = interfaceParamAnno.getAnnotationMembers();
+                            }catch (Exception ex){
+                                implParamAnnoMembers = Collections.unmodifiableMap(new LinkedHashMap<String, JAnnotationValue>());
+                            }
+                            Iterator<String> implParamAnnoMembersKeyIt = implParamAnnoMembers.keySet().iterator();
+
+                            JAnnotationUse implParamAnno = implParam.annotate(implParamAnnoType);
+
+                            while (implParamAnnoMembersKeyIt.hasNext()){
+                                String implParamAnnoMemberKey = implParamAnnoMembersKeyIt.next();
+                                JAnnotationValue implParamAnnoMemberValue = implParamAnnoMembers.get(implParamAnnoMemberKey);
+                                Class<?> valueType = Class.forName(implParamAnnoMemberValue.getClass().getName());
+                                Field valueField = valueType.getDeclaredField("value");
+								valueField.setAccessible(true);
+
+								implParamAnno.param(implParamAnnoMemberKey, (JExpression) valueField.get(implParamAnnoMemberValue));
+
+
+                            }
+                        }
+
+                    }
+
+					JBlock implBody = implMethod.body();
+                    Action ramlAction = context.getMethodActionInfos().get(methodName);
+                    if (StringUtils.isNotBlank(ramlAction.getTemplate()))
+						implBody.directStatement(ramlAction.getTemplate());
+
+				}
+			}
+		}
+
+		context.setImplModel(implModel);
 	}
 
 	/**

@@ -61,6 +61,8 @@ public class ClientGenerator extends AbstractGenerator {
 		if(methodName==null){
 			methodName = Names.buildResourceMethodName(action,actualBodyMimeType);
 		}
+
+		context.getMethodActionInfos().put(methodName,action);//1
 		final JType resourceMethodReturnType = getResourceMethodReturnType(
 				methodName, action, uniqueResponseMimeTypes.isEmpty(),
 				false, resourceInterface);

@@ -158,7 +158,9 @@ public class Generator extends AbstractGenerator
 		if(methodName==null){
 			methodName = Names.buildResourceMethodName(action,actualBodyMimeType);
 		}
-		
+
+        context.getMethodActionInfos().put(methodName,action);//1
+
         Configuration configuration = context.getConfiguration();
         String asyncResourceTrait = configuration.getAsyncResourceTrait();
         boolean asyncMethod = isNotBlank(asyncResourceTrait) && action.getIs().contains(asyncResourceTrait);
@@ -244,6 +246,10 @@ public class Generator extends AbstractGenerator
         responseClassConstructor.param(javax.ws.rs.core.Response.class, "delegate");
         responseClassConstructor.body().invoke("super").arg(JExpr.ref("delegate"));
 
+        if (context.getConfiguration().isGenerateImplement()){
+            responseClass.constructor(JMod.PUBLIC);
+        }
+
         for (final Entry<String, Response> statusCodeAndResponse : action.getResponses().entrySet())
         {
             createResponseBuilderInResourceMethodReturnType(action, responseClass, statusCodeAndResponse);
@@ -296,10 +302,16 @@ public class Generator extends AbstractGenerator
             javadoc.add(EXAMPLE_PREFIX + responseMimeType.getExample());
         }
 
-        JInvocation builderArgument = types.getGeneratorClass(javax.ws.rs.core.Response.class)
-            .staticInvoke("status")
-            .arg(JExpr.lit(statusCode));
-
+        JInvocation builderArgument;
+        if (context.getConfiguration().isGenerateImplement())
+            builderArgument = types.getGeneratorClass(responseClass._extends().fullName())
+                    .staticInvoke("status")
+                    .arg(JExpr.lit(statusCode));
+        else {
+            builderArgument = types.getGeneratorClass(javax.ws.rs.core.Response.class)
+                    .staticInvoke("status")
+                    .arg(JExpr.lit(statusCode));
+        }
         if (responseMimeType != null)
         {
             builderArgument = builderArgument.invoke("header")
@@ -331,9 +343,8 @@ public class Generator extends AbstractGenerator
 
         final JBlock responseBuilderMethodBody = responseBuilderMethod.body();
 
-        final JVar builderVariable = responseBuilderMethodBody.decl(
-            types.getGeneratorType(ResponseBuilder.class), "responseBuilder", builderArgument);
-
+        JVar builderVariable = responseBuilderMethodBody.decl(
+                    types.getGeneratorType(ResponseBuilder.class), "responseBuilder", builderArgument);
         if (freeFormHeadersDescription.length() > 0)
         {
             // generate a Map<String, List<Object>> argument for {?} headers

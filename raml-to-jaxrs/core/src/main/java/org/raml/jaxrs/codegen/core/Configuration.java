@@ -80,6 +80,15 @@ public class Configuration
     private Class customAnnotator= NoopAnnotator.class;
     private String restIFPackageName = "resource" ;
     private String interfaceNameSuffix = "Resource" ;
+    private boolean generateImplement = false;//1
+
+    public boolean isGenerateImplement() { //1
+        return generateImplement;
+    }
+
+    public void setGenerateImplement(boolean generateImplement) { //1
+        this.generateImplement = generateImplement;
+    }
 
     public ArrayList<String> getIgnoredParameterNames() {
         return ignoredParameterNames;

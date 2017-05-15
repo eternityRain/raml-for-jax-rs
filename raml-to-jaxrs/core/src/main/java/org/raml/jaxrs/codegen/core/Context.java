@@ -46,6 +46,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.jsonschema2pojo.*;
 import org.jsonschema2pojo.rules.RuleFactory;
+import org.raml.model.Action;
 import org.raml.model.Raml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,14 +78,31 @@ class Context
     private final Configuration configuration;
     private final Raml raml;
     private final JCodeModel codeModel;
+    private JCodeModel implModel;//1
     private final Map<String, Set<String>> resourcesMethods;
     private final Map<String, Object> httpMethodAnnotations;
-
+    private Map<String, Action> methodActionInfos;//1
     private final SchemaMapper schemaMapper;
 
     private boolean shouldGenerateResponseWrapper = false;
     private JDefinedClass currentResourceInterface;
     private final File globalSchemaStore;
+
+    public JCodeModel getImplModel() {
+        return implModel;
+    }
+
+    public void setImplModel(JCodeModel implModel) {
+        this.implModel = implModel;
+    }
+
+    public Map<String, Action> getMethodActionInfos() {
+        return methodActionInfos;
+    }
+
+    public void setMethodActionInfos(Map<String, Action> methodActionInfos) {
+        this.methodActionInfos = methodActionInfos;
+    }
 
     /**
      * <p>ref.</p>
@@ -112,9 +130,9 @@ class Context
         this.raml = raml;
 
         codeModel = new JCodeModel();
-
+        implModel = new JCodeModel();//1
         resourcesMethods = new HashMap<String, Set<String>>();
-
+        methodActionInfos = new HashMap<String, Action>();//1
         // prime the HTTP method annotation cache
         httpMethodAnnotations = new HashMap<String, Object>();
         for (final Class<? extends Annotation> clazz : JAXRS_HTTP_METHODS)
@@ -165,6 +183,13 @@ class Context
         final PrintStream ps = new PrintStream(baos);
         codeModel.build(configuration.getOutputDirectory(), ps);
         ps.close();
+
+        if (configuration.isGenerateImplement()){//1
+            final ByteArrayOutputStream implBos = new ByteArrayOutputStream();
+            final PrintStream implps = new PrintStream(implBos);
+            implModel.build(configuration.getOutputDirectory(), implps);
+            implps.close();
+        }
 
         final Set<String> generatedFiles = new HashSet<String>();
         if (shouldGenerateResponseWrapper)
@@ -243,10 +268,16 @@ class Context
 
     private String generateResponseWrapper() throws IOException
     {
-        final String template = IOUtils.toString(getClass().getResourceAsStream(
-            "/org/raml/templates/ResponseWrapper." + configuration.getJaxrsVersion().toString().toLowerCase()
+        final String template;
+        if (configuration.isGenerateImplement()){
+            template = IOUtils.toString(getClass().getResourceAsStream(
+                    "/org/raml/templates/ResponseWrapper." + configuration.getJaxrsVersion().toString().toLowerCase()
+                            + ".generateImplement.template"));
+        }else {
+            template = IOUtils.toString(getClass().getResourceAsStream(
+                    "/org/raml/templates/ResponseWrapper." + configuration.getJaxrsVersion().toString().toLowerCase()
                             + ".template"));
-
+        }
         final File supportPackageOutputDirectory = new File(configuration.getOutputDirectory(),
             getSupportPackage().replace('.', File.separatorChar));
 

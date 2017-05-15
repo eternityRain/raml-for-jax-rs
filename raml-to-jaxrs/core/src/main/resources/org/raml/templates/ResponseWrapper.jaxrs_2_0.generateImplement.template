@@ -1,3 +1,4 @@
+
 package ${codegen.support.package};
 
 import java.lang.annotation.Annotation;
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
+import java.io.Serializable;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.Link;
@@ -21,15 +22,15 @@ import javax.ws.rs.core.Response;
 /**
  * Response wrapper for JAX-RS 2.0
  */
-public abstract class ResponseWrapper extends Response
+public abstract class ResponseWrapper extends Response implements Serializable
 {
-    private final Response delegate;
+    private Response delegate;// modify
 
     protected ResponseWrapper(final Response delegate)
     {
         this.delegate = delegate;
     }
-
+    public ResponseWrapper(){}
     protected static ResponseBuilder headers(final Map<String, List<Object>> headers, final ResponseBuilder responseBuilder)
     {
         if (headers != null)

@@ -166,6 +166,9 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 
 	@Parameter(property ="customAnnotator",defaultValue = "")
 	private String customAnnotator;
+
+	@Parameter(property = "generateImplement",defaultValue = "false")
+	private boolean generateImplement = false;
 	/**
 	 * {@inheritDoc}
 	 *
@@ -213,6 +216,7 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 			configuration.setSourceDirectory(sourceDirectory);
 			configuration.setJsonMapperConfiguration(jsonMapperConfiguration);
 			configuration.setEmptyResponseReturnVoid(mapToVoid);
+			configuration.setGenerateImplement(generateImplement);
 			if(ignoredParameters!=null){
 				for (String s:ignoredParameters){
 					configuration.getIgnoredParameterNames().add(s);

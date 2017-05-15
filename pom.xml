@@ -3,20 +3,17 @@
   <groupId>org.raml</groupId>
   <artifactId>com.mulesoft.jaxrs-raml.all</artifactId>
 <version>1.3.4</version>
-  <packaging>pom</packaging>  
-  <distributionManagement>
-       <repository>
-            <id>mule-ee-releases</id>
-            <name>Mule Release Repository</name>                                               
-            <url>http://repository-master.mulesoft.org/releases/</url>
+  <packaging>pom</packaging>
+    <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://devops.lashou-inc.com:8081/content/repositories/thirdparty</url>
         </repository>
         <snapshotRepository>
-            <id>mule-snapshots</id>
-            <name>Mule Snapshot Repository</name>
-            <url>http://repository-master.mulesoft.org/snapshots/</url>
-            <uniqueVersion>false</uniqueVersion>
+            <id>nexus-snapshots</id>
+            <url>http://devops.lashou-inc.com:8081/content/repositories/snapshots</url>
         </snapshotRepository>
-  </distributionManagement>  
+    </distributionManagement>
   <profiles>
     <profile>
       <id>sonatype</id>
@@ -49,7 +46,7 @@
         </plugins>
       </build>
     </profile>
-     
+
   </profiles>
 <build>
   <plugins>
