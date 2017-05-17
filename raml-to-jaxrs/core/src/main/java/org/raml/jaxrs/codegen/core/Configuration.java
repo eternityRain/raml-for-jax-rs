@@ -81,6 +81,36 @@ public class Configuration
     private String restIFPackageName = "resource" ;
     private String interfaceNameSuffix = "Resource" ;
     private boolean generateImplement = false;//1
+    private Pattern pattern = Pattern.REST;//1
+
+    public enum Pattern {
+        REST("rest"),
+        NO_REST("no_rest");
+
+        private final String val;
+        Pattern(final String val) {
+            this.val = val;
+        }
+        public static Pattern fromValue(String newVal){
+            final List<String> supportedVal = new ArrayList<String>();
+            for (Pattern compare : Pattern.values()){
+                if (compare.val.equals(newVal))
+                    return compare;
+
+                supportedVal.add(compare.val);
+            }
+            throw new IllegalArgumentException(newVal + " is not a supported pattern ("
+                    + StringUtils.join(supportedVal, ',') + ")");
+        }
+    }
+
+    public Pattern getPattern() {
+        return pattern;
+    }
+
+    public void setPattern(Pattern pattern) {
+        this.pattern = pattern;
+    }
 
     public boolean isGenerateImplement() { //1
         return generateImplement;

@@ -246,7 +246,7 @@ public class Generator extends AbstractGenerator
         responseClassConstructor.param(javax.ws.rs.core.Response.class, "delegate");
         responseClassConstructor.body().invoke("super").arg(JExpr.ref("delegate"));
 
-        if (context.getConfiguration().isGenerateImplement()){
+        if (context.getConfiguration().getPattern().equals(Configuration.Pattern.NO_REST)){
             responseClass.constructor(JMod.PUBLIC);
         }
 
@@ -303,7 +303,7 @@ public class Generator extends AbstractGenerator
         }
 
         JInvocation builderArgument;
-        if (context.getConfiguration().isGenerateImplement())
+        if (context.getConfiguration().getPattern().equals(Configuration.Pattern.NO_REST))
             builderArgument = types.getGeneratorClass(responseClass._extends().fullName())
                     .staticInvoke("status")
                     .arg(JExpr.lit(statusCode));

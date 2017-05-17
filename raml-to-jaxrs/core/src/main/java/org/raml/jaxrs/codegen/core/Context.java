@@ -269,7 +269,7 @@ class Context
     private String generateResponseWrapper() throws IOException
     {
         final String template;
-        if (configuration.isGenerateImplement()){
+        if (configuration.getPattern().equals(Configuration.Pattern.NO_REST)){
             template = IOUtils.toString(getClass().getResourceAsStream(
                     "/org/raml/templates/ResponseWrapper." + configuration.getJaxrsVersion().toString().toLowerCase()
                             + ".generateImplement.template"));

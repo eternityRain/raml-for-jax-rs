@@ -229,14 +229,15 @@ public abstract class AbstractGenerator {
 			if (!jPackage.name().equals(configuration.getBasePackageName()+"."+configuration.getRestIFPackageName()))
 				continue;
 
+			JPackage implPackage = implModel._package(jPackage.name()+"."+"impl");
 			Iterator<JDefinedClass> classIt = jPackage.classes();
 			while (classIt.hasNext()){
 
 				JDefinedClass interfaceClass = classIt.next();
-				String interfaceName = interfaceClass.fullName();
+				String interfaceName = interfaceClass.name();
                 Collection<JMethod> interfaceMethods = interfaceClass.methods();
 
-				JDefinedClass implClass = implModel._class(interfaceName+"Impl");
+				JDefinedClass implClass = implPackage._class(interfaceName+"Impl");
 				implClass._implements(interfaceClass);
 
 				for (JMethod interfaceMethod : interfaceMethods){

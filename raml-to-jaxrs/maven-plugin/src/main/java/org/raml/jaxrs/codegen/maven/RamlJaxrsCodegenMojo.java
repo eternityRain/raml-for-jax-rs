@@ -93,6 +93,7 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 	 * Model package name used for generated Java classes.
 	 * Models will be placed in the package:
 	 *
+	 *
 	 *   basePackageName + "." + modelPackageName
 	 *
 	 * The default location is set to:
@@ -169,6 +170,35 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 
 	@Parameter(property = "generateImplement",defaultValue = "false")
 	private boolean generateImplement = false;
+
+	@Parameter(property = "pattern",defaultValue = "rest")
+	private String pattern = "rest";
+
+	@Parameter(property = "extensionsUnderNorm")
+	private ExtensionsUnderNorm[] extensionsUnderNorm;
+
+	@Parameter(property = "annotatorUnderNorm")
+    private AnnotatorUnderNorm annotatorUnderNorm;
+
+	enum AnnotatorUnderNorm{
+	    MONGO("org.raml.jaxrs.codegen.maven.annotators.MongoAnnotator");
+
+	    private String val;
+
+        AnnotatorUnderNorm(String s) {
+            this.val = s;
+        }
+    }
+
+	enum ExtensionsUnderNorm{
+
+	    MULTIPART("org.raml.jaxrs.codegen.maven.extensions.MultipartExtension");
+
+	    private String val;
+        ExtensionsUnderNorm(String s) {
+            this.val = s;
+        }
+    }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -217,13 +247,20 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 			configuration.setJsonMapperConfiguration(jsonMapperConfiguration);
 			configuration.setEmptyResponseReturnVoid(mapToVoid);
 			configuration.setGenerateImplement(generateImplement);
+			configuration.setPattern(Configuration.Pattern.fromValue(pattern));
+
 			if(ignoredParameters!=null){
 				for (String s:ignoredParameters){
 					configuration.getIgnoredParameterNames().add(s);
 				}
 			}
+
+            if (this.annotatorUnderNorm != null){
+                configuration.setCustomAnnotator(Class.forName(annotatorUnderNorm.val));
+            }
+
 			if(this.customAnnotator!=null&& StringUtils.isNotEmpty(customAnnotator)){
-				configuration.setCustomAnnotator((Class)Class.forName(customAnnotator));
+				configuration.setCustomAnnotator(Class.forName(customAnnotator));
 			}
 
 			if (extensions != null) {
@@ -245,6 +282,27 @@ public class RamlJaxrsCodegenMojo extends AbstractMojo {
 
 				}
 			}
+
+            if (extensionsUnderNorm != null) {
+                for (ExtensionsUnderNorm e : extensionsUnderNorm) {
+                    String className = e.val;
+                    Class c = Class.forName(className);
+                    if (c == null) {
+                        throw new MojoExecutionException("generatorExtensionClass " + className
+                                + " cannot be loaded."
+                                + "Have you installed the correct dependency in the plugin configuration?");
+                    }
+                    if (!((c.newInstance()) instanceof GeneratorExtension)) {
+                        throw new MojoExecutionException("generatorExtensionClass " + className
+                                + " does not implement" + GeneratorExtension.class.getPackage() + "."
+                                + GeneratorExtension.class.getName());
+
+                    }
+                    configuration.getExtensions().add((GeneratorExtension) c.newInstance());
+
+
+                }
+            }
 			/*
 			 * if (methodThrowException != null) {
 			 * configuration.setMethodThrowException
